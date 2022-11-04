@@ -20,30 +20,25 @@ client.send(str_key.encode())
 # recevoir le premier nombre pour l'etablissement de clé
 key = client.recv(500)
 p = int(key.decode("utf-8"))
-print("clé: ", p)
 # etablir une cle public
 server_number = g ^ client_number % p
-print(server_number)
 # envoyer la clé publique
 client.send(str(server_number).encode())
 # recevoir la clé publique
 server_key = client.recv(500)
 g = int(server_key.decode("utf-8"))
 cle_commune = g ^ client_number % p
-print("code: ", cle_commune)
 
 
 def encrypt(msg):
     cipher = DES.new(bytes(8), DES.MODE_EAX)
+    nonce = cipher.nonce
     ciphertext, tag = cipher.encrypt_and_digest(msg.encode("ascii"))
-    print("tag: ", tag)
-    print("ciphertext: ", ciphertext)
-
-    return ciphertext, tag
+    return nonce, ciphertext, tag
 
 
-def decrypt(ciphertext, tag):
-    cipher = DES.new(bytes(8), DES.MODE_EAX)
+def decrypt(nonce, ciphertext, tag):
+    cipher = DES.new(bytes(8), DES.MODE_EAX, nonce=nonce)
     plaintext = cipher.decrypt(ciphertext)
     try:
         cipher.verify(tag)
@@ -60,5 +55,6 @@ while True:
     client.send(msg_obj)
 
     server_recv = client.recv(500)
-    server_recv = server_recv.decode("utf-8")
+    nonce, cipher, tag = pickle.loads(server_recv)
+    server_recv = decrypt(nonce, cipher, tag)
     print("server: ", server_recv)

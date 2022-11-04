@@ -13,10 +13,10 @@
 ## Plan :
 
 - ~~Faire un server/client classique~~
-- Choisir un protocol de chiffrement et l'implementer
-- utiliser un chiffrement symétrique
-- un protocole d'échange de clefs en début de session
+- ~~Choisir un protocol de chiffrement et l'implementer~~
+- ~~utiliser un chiffrement symétrique~~
+- ~~un protocole d'échange de clefs en début de session~~
 - ajouter des threads pour rendre l'usage plus fluide
-- signer les messages
+- ~~signer les messages~~
 
 ## Resources
