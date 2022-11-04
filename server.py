@@ -35,18 +35,18 @@ g = int(client_number.decode("utf-8"))
 # envoyer la clé publique
 client.send(str(server_key).encode())
 # etablir la clé partagé
-cle_commune = g ^ server_number % p
+cle_commune = (g ^ server_number % p).to_bytes(8, "big")
 
 
 def encrypt(msg):
-    cipher = DES.new(bytes(8), DES.MODE_EAX)
+    cipher = DES.new(cle_commune, DES.MODE_EAX)
     nonce = cipher.nonce
     ciphertext, tag = cipher.encrypt_and_digest(msg.encode("ascii"))
     return nonce, ciphertext, tag
 
 
 def decrypt(nonce, ciphertext, tag):
-    cipher = DES.new(bytes(8), DES.MODE_EAX, nonce=nonce)
+    cipher = DES.new(cle_commune, DES.MODE_EAX, nonce=nonce)
     plaintext = cipher.decrypt(ciphertext)
 
     try:

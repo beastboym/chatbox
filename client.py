@@ -27,18 +27,18 @@ client.send(str(server_number).encode())
 # recevoir la clé publique
 server_key = client.recv(500)
 g = int(server_key.decode("utf-8"))
-cle_commune = g ^ client_number % p
+cle_commune = (g ^ client_number % p).to_bytes(8, "big")
 
 
 def encrypt(msg):
-    cipher = DES.new(bytes(8), DES.MODE_EAX)
+    cipher = DES.new(cle_commune, DES.MODE_EAX)
     nonce = cipher.nonce
     ciphertext, tag = cipher.encrypt_and_digest(msg.encode("ascii"))
     return nonce, ciphertext, tag
 
 
 def decrypt(nonce, ciphertext, tag):
-    cipher = DES.new(bytes(8), DES.MODE_EAX, nonce=nonce)
+    cipher = DES.new(cle_commune, DES.MODE_EAX, nonce=nonce)
     plaintext = cipher.decrypt(ciphertext)
     try:
         cipher.verify(tag)
