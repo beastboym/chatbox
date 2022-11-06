@@ -1,10 +1,7 @@
 import socket, pickle
 from Crypto.Cipher import DES
 from secrets import token_bytes
-
-Key = token_bytes(8)
-g = 233333313  # entier inférieur à p (public)
-client_number = 333333333  # nombre arbitraire inférieur à p-1
+import random
 
 
 host = "127.0.0.1"
@@ -15,19 +12,17 @@ client = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 client.connect((host, port))
 
 # Algorithme deffie hellman
+g = random.randint(500, 9556891747)
 str_key = str(g)
 client.send(str_key.encode())
-# recevoir le premier nombre pour l'etablissement de clé
 key = client.recv(500)
 p = int(key.decode("utf-8"))
-# etablir une cle public
-server_number = g ^ client_number % p
-# envoyer la clé publique
-client.send(str(server_number).encode())
-# recevoir la clé publique
+bob = random.randint(500, p - 1)
+alice = g ^ bob % p
+client.send(str(alice).encode())
 server_key = client.recv(500)
 g = int(server_key.decode("utf-8"))
-cle_commune = (g ^ client_number % p).to_bytes(8, "big")
+cle_commune = (g ^ bob % p).to_bytes(8, "big")
 
 
 def encrypt(msg):
@@ -44,17 +39,19 @@ def decrypt(nonce, ciphertext, tag):
         cipher.verify(tag)
         return plaintext.decode("ascii")
     except:
-        print("probleme")
-        return 1
+        print("Le message n'est pas fiable")
+        raise SystemExit
 
 
-nom = input("quel est votre nom :")
 while True:
-    msg = input(f"{nom} : ")
-    msg_obj = pickle.dumps(encrypt(msg))
-    client.send(msg_obj)
-
-    server_recv = client.recv(500)
-    nonce, cipher, tag = pickle.loads(server_recv)
-    server_recv = decrypt(nonce, cipher, tag)
-    print("server: ", server_recv)
+    try:
+        msg = input("client : ")
+        msg_obj = pickle.dumps(encrypt(msg))
+        client.send(msg_obj)
+        server_recv = client.recv(500)
+        nonce, cipher, tag = pickle.loads(server_recv)
+        server_recv = decrypt(nonce, cipher, tag)
+        print("server: ", server_recv)
+    except KeyboardInterrupt:
+        print("fermer")
+        raise SystemExit

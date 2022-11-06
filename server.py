@@ -1,13 +1,11 @@
+import random
 import socket, pickle
 from Crypto.Cipher import DES
 from secrets import token_bytes
 
-Key = token_bytes(8)
 
 host = "127.0.0.1"
 port = 6007
-p = 433333333  # Nombre premier arbitraire (public)
-server_number = 145111113  # nombre arbitraire inférieur à p-1
 
 
 # déclarer un socket
@@ -21,6 +19,8 @@ server.listen(1)
 client, ip = server.accept()
 
 # Algorithme deffie hellman
+p = 9576890767  # Nombre premier arbitraire (public)
+alice = random.randint(500, p - 1)  # nombre arbitraire inférieur à p-1
 # recevoir le premier nombre pour l'etablissement de clé
 key = client.recv(500)
 g = int(key.decode("utf-8"))
@@ -28,20 +28,20 @@ g = int(key.decode("utf-8"))
 str_key = str(p)
 client.send(str_key.encode())
 # etablir une cle public
-server_key = g ^ server_number % p
+server_key = g ^ alice % p
 # recevoir la clé publique
-client_number = client.recv(500)
+client_number = int(client.recv(500))
 g = int(client_number.decode("utf-8"))
 # envoyer la clé publique
 client.send(str(server_key).encode())
 # etablir la clé partagé
-cle_commune = (g ^ server_number % p).to_bytes(8, "big")
+cle_commune = (g ^ alice % p).to_bytes(8, "big")
 
 
 def encrypt(msg):
     cipher = DES.new(cle_commune, DES.MODE_EAX)
     nonce = cipher.nonce
-    ciphertext, tag = cipher.encrypt_and_digest(msg.encode("ascii"))
+    ciphertext, tag = cipher.encrypt_and_digest(msg.encode())
     return nonce, ciphertext, tag
 
 
@@ -54,22 +54,22 @@ def decrypt(nonce, ciphertext, tag):
         return plaintext.decode()
 
     except:
-        print("probleme")
-        return 1
+        print("Le message n'est pas fiable")
+        raise SystemExit
 
 
 while True:
-    client_recv = client.recv(500)
-    # décoder le message en utf-8
-    nonce, cipher, tag = pickle.loads(client_recv)
-    print("client: ", decrypt(nonce, cipher, tag))
-    # si le message est vide on ferme
-    if not client_recv:
+    try:
+        client_recv = client.recv(500)
+        # décoder le message en utf-8
+        if client_recv:
+            nonce, cipher, tag = pickle.loads(client_recv)
+        print("client: ", decrypt(nonce, cipher, tag))
+        msg = input("server: ")
+        msg_obj = pickle.dumps(encrypt(msg))
+        client.send(msg_obj)
+    except KeyboardInterrupt:
         print("fermer")
-        break
-    msg = input("server: ")
-    msg_obj = pickle.dumps(encrypt(msg))
-    client.send(msg_obj)
-
-client.close()
-socket.close()
+        client.shutdown(socket.SHUT_RDWR)
+        socket.shutdown(socket.SHUT_RDWR)
+        raise SystemExit
